@@ -1,0 +1,1803 @@
+<!DOCTYPE html>
+<html lang="id" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Inventaris & Peminjaman - Laboratorium Fikomm</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Font Awesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+    </style>
+</head>
+<body class="bg-[#f8fafc] dark:bg-slate-900 text-gray-800 dark:text-gray-100 flex h-screen overflow-hidden transition-colors duration-200">
+
+    <!-- MOBILE SIDEBAR BACKDROP -->
+    <div id="sidebarBackdrop" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden backdrop-blur-sm transition-opacity"></div>
+
+    <!-- SIDEBAR NAVIGASI -->
+    <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-50 w-64 bg-white dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700 flex flex-col h-full overflow-y-auto transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
+        <!-- Logo & Theme Toggle -->
+        <div class="p-6 flex justify-between items-center border-b border-gray-100 dark:border-slate-700">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-lg bg-blue-700 text-white flex items-center justify-center font-bold shadow-sm">
+                    <i class="fas fa-video text-sm"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-blue-700 dark:text-blue-400 tracking-tight leading-none">Lab Fikomm</h1>
+                    <span id="roleBadgeSidebar" class="text-[10px] font-semibold text-gray-400 dark:text-slate-400 uppercase tracking-wider">Mode Pengunjung</span>
+                </div>
+            </div>
+            
+            <!-- Dark Mode Switch -->
+            <button onclick="toggleDarkMode()" title="Ubah Tema" class="flex items-center gap-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 rounded-lg">
+                <i class="fas fa-sun text-xs text-amber-500"></i>
+                <div class="w-9 h-5 bg-gray-200 dark:bg-blue-600 rounded-full relative transition-colors flex items-center px-0.5">
+                    <div class="w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200 translate-x-0 dark:translate-x-4"></div>
+                </div>
+                <i class="fas fa-moon text-xs text-slate-400 dark:text-blue-300"></i>
+            </button>
+        </div>
+
+        <!-- Menu Navigation -->
+        <nav class="flex-1 px-4 py-5 space-y-6">
+            <!-- Group: Menu Utama -->
+            <div>
+                <p class="px-4 text-[11px] font-semibold text-gray-400 dark:text-slate-400 mb-2 uppercase tracking-wider">Menu Utama</p>
+                <div class="space-y-1">
+                    <a href="#" onclick="switchTab('katalog')" id="nav-katalog" class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg shadow-sm transition-all">
+                        <i class="fas fa-th-large w-5 text-center"></i> Beranda Katalog
+                    </a>
+                    <a href="#" onclick="switchTab('riwayat')" id="nav-riwayat" class="flex items-center justify-between px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors">
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-clipboard-list w-5 text-center"></i> Riwayat Pinjam
+                        </div>
+                        <span id="activeLoanBadgeSidebar" class="px-2 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300 rounded-full">0</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Group: Panel Petugas Lab -->
+            <div>
+                <p class="px-4 text-[11px] font-semibold text-gray-400 dark:text-slate-400 mb-2 uppercase tracking-wider">Manajemen & Petugas</p>
+                <div class="space-y-1">
+                    <a href="#" onclick="handlePetugasAccess()" id="nav-petugas" class="flex items-center justify-between px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors">
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-user-shield w-5 text-center text-indigo-600 dark:text-indigo-400"></i> Mode Petugas
+                        </div>
+                        <i id="lockIconSidebar" class="fas fa-lock text-xs text-gray-400"></i>
+                    </a>
+                    <a href="#" onclick="switchTab('tabel')" id="nav-tabel" class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors">
+                        <i class="fas fa-boxes w-5 text-center"></i> Tabel Inventaris
+                    </a>
+                    <a href="#" onclick="openSpreadsheetModal()" class="flex items-center justify-between px-4 py-2.5 text-sm font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50/70 dark:bg-emerald-950/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-lg transition-colors">
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-file-excel w-5 text-center text-emerald-600"></i> Google Sheet Center
+                        </div>
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Pintasan Buka Google Sheet Langsung -->
+            <div class="px-2">
+                <a href="https://docs.google.com/spreadsheets/d/1TDfsWQNSmwHWFhr6VzmcCSfV89KBSY4qVa9U2slCqlo/edit?usp=sharing" target="_blank" rel="noopener noreferrer" 
+                   class="flex items-center justify-between p-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all group">
+                    <div class="flex items-center gap-2.5">
+                        <i class="fas fa-table text-base"></i>
+                        <div>
+                            <p class="text-xs font-bold leading-none">Buka Spreadsheet</p>
+                            <p class="text-[10px] text-emerald-100 mt-0.5">Data Center Lab Fikomm</p>
+                        </div>
+                    </div>
+                    <i class="fas fa-external-link-alt text-xs opacity-80 group-hover:translate-x-0.5 transition-transform"></i>
+                </a>
+            </div>
+
+            <!-- Statistik Ringkas Sidebar -->
+            <div class="px-2">
+                <div class="bg-slate-50 dark:bg-slate-700/40 rounded-xl p-4 border border-gray-100 dark:border-slate-700 space-y-2.5">
+                    <p class="text-[11px] font-bold uppercase text-gray-400 dark:text-slate-400 tracking-wider">Ringkasan Lab</p>
+                    <div class="flex justify-between text-xs">
+                        <span class="text-gray-500 dark:text-slate-400">Total Jenis Alat:</span>
+                        <span id="statTotalJenis" class="font-bold text-gray-800 dark:text-white">23</span>
+                    </div>
+                    <div class="flex justify-between text-xs">
+                        <span class="text-gray-500 dark:text-slate-400">Kondisi Baik:</span>
+                        <span id="statKondisiBaik" class="font-bold text-emerald-600 dark:text-emerald-400">23</span>
+                    </div>
+                    <div class="flex justify-between text-xs">
+                        <span class="text-gray-500 dark:text-slate-400">Kondisi Rusak:</span>
+                        <span id="statKondisiRusak" class="font-bold text-red-500">0</span>
+                    </div>
+                    <div class="flex justify-between text-xs">
+                        <span class="text-gray-500 dark:text-slate-400">Sedang Dipinjam:</span>
+                        <span id="statSedangDipinjam" class="font-bold text-amber-600 dark:text-amber-400">0</span>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Bottom Action -->
+        <div class="p-4 border-t border-gray-100 dark:border-slate-700 space-y-2">
+            <button id="btnSidebarLoginPetugas" onclick="handlePetugasAccess()" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-semibold text-indigo-600 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 rounded-lg transition-colors">
+                <i class="fas fa-key"></i> Login Petugas Lab
+            </button>
+            <button id="btnSidebarLogoutPetugas" onclick="logoutPetugas()" class="hidden w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-semibold text-red-600 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 rounded-lg transition-colors">
+                <i class="fas fa-sign-out-alt"></i> Keluar Mode Petugas
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden">
+        
+        <!-- Top Header / Navbar -->
+        <header class="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 min-h-[4.25rem] flex flex-wrap items-center justify-between px-4 md:px-6 py-2.5 gap-3">
+            <div class="flex items-center gap-3">
+                <button onclick="toggleMobileSidebar()" class="md:hidden text-gray-500 dark:text-gray-300 hover:text-blue-600 p-2 rounded-lg">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h2 id="pageTitle" class="text-lg md:text-xl font-bold text-gray-800 dark:text-white">Pilihan Barang Peminjaman</h2>
+                        <span id="petugasActiveIndicator" class="hidden px-2.5 py-0.5 text-[10px] font-bold uppercase bg-indigo-600 text-white rounded-full shadow-xs">
+                            <i class="fas fa-user-check mr-1"></i> Petugas Aktif
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs text-gray-400">
+                        <span id="syncStatusDot" class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+                        <span id="syncStatusText">Menghubungkan ke Cloud & Google Sheet Data Center...</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Filter, Search & Sync Controls -->
+            <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-end">
+                <!-- Tombol Sinkron Cepat Google Sheet -->
+                <button onclick="pullFromGoogleSheetDirect(true)" title="Tarik Data Terbaru dari Google Sheet" class="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 text-xs font-semibold px-3 py-2 rounded-lg transition-colors">
+                    <i id="iconSyncSheet" class="fas fa-sync-alt"></i>
+                    <span class="hidden xl:inline">Sync Sheet</span>
+                </button>
+
+                <!-- Search Input -->
+                <div class="relative flex-1 sm:flex-initial">
+                    <input type="text" id="searchInput" placeholder="Cari nama/kode alat..." 
+                        class="pl-9 pr-4 py-2 bg-gray-50 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-xs md:text-sm focus:outline-none focus:border-blue-500 w-full sm:w-52 dark:text-white">
+                    <i class="fas fa-search absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                </div>
+
+                <!-- Category Filter Dropdown -->
+                <select id="categoryFilter" class="bg-gray-50 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-xs md:text-sm px-3 py-2 focus:outline-none focus:border-blue-500 dark:text-white">
+                    <option value="Semua">Semua Kategori</option>
+                    <option value="Lensa">Lensa</option>
+                    <option value="Kamera">Kamera</option>
+                    <option value="Audio">Audio</option>
+                    <option value="Lighting">Lighting</option>
+                    <option value="Aksesoris">Aksesoris</option>
+                    <option value="Alat Lab">Alat Lab</option>
+                </select>
+
+                <!-- Condition Filter Dropdown -->
+                <select id="conditionFilter" class="bg-gray-50 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-xs md:text-sm px-3 py-2 focus:outline-none focus:border-blue-500 dark:text-white">
+                    <option value="Semua">Semua Kondisi</option>
+                    <option value="Baik">Kondisi: Baik</option>
+                    <option value="Rusak">Kondisi: Rusak</option>
+                </select>
+
+                <!-- Button Mode Petugas Cepat -->
+                <button onclick="handlePetugasAccess()" class="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium px-3.5 py-2.5 rounded-lg shadow-sm transition-colors">
+                    <i class="fas fa-user-shield"></i>
+                    <span class="hidden sm:inline">Panel Petugas</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Dynamic Content Container -->
+        <div class="flex-1 overflow-y-auto p-4 md:p-6">
+            
+            <!-- ========================================================= -->
+            <!-- VIEW 1: GRID KATALOG ALAT (BERANDA)                       -->
+            <!-- ========================================================= -->
+            <div id="view-katalog">
+                <div id="katalog-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    <!-- Kartu barang di-render oleh JavaScript di sini -->
+                </div>
+            </div>
+
+            <!-- ========================================================= -->
+            <!-- VIEW 2: DASHBOARD MODE PETUGAS (PASSWORD PROTECTED)       -->
+            <!-- ========================================================= -->
+            <div id="view-petugas" class="hidden space-y-6">
+                
+                <!-- Banner Info Petugas -->
+                <div class="bg-gradient-to-r from-indigo-600 to-blue-600 rounded-xl p-5 text-white shadow-md flex flex-wrap justify-between items-center gap-4">
+                    <div>
+                        <span class="text-[11px] font-bold uppercase tracking-wider bg-white/20 px-2.5 py-1 rounded-full">Dashboard Administrator & Laboran</span>
+                        <h3 class="text-xl font-bold mt-2">Kelola Peminjaman & Inventaris Alat Lab Fikomm</h3>
+                        <p class="text-xs text-indigo-100 mt-0.5">Pantau pengembalian barang, verifikasi kondisi alat, serta tambah/kurangi stok inventaris secara langsung.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="openTambahAlatModal()" class="bg-white text-indigo-700 hover:bg-indigo-50 font-semibold text-xs px-4 py-2.5 rounded-lg shadow-sm flex items-center gap-2 transition-colors">
+                            <i class="fas fa-plus-circle"></i> Tambah Alat Baru
+                        </button>
+                        <button onclick="pushFullDataToSheet()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs px-4 py-2.5 rounded-lg shadow-sm flex items-center gap-2 transition-colors">
+                            <i class="fas fa-cloud-upload-alt"></i> Kirim Semua ke Google Sheet
+                        </button>
+                        <button onclick="exportCSV()" class="bg-white/20 hover:bg-white/30 text-white font-semibold text-xs px-3.5 py-2.5 rounded-lg shadow-sm flex items-center gap-2 transition-colors">
+                            <i class="fas fa-file-csv"></i> CSV
+                        </button>
+                        <button onclick="openResetConfirmModal()" class="bg-white/15 hover:bg-white/25 text-white text-xs px-3.5 py-2.5 rounded-lg transition-colors">
+                            <i class="fas fa-undo mr-1"></i> Reset Default
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sub-Navigasi Tab di Dalam Mode Petugas -->
+                <div class="flex flex-wrap border-b border-gray-200 dark:border-slate-700 gap-2">
+                    <button onclick="switchPetugasSubTab('pantau')" id="subtab-btn-pantau" class="px-5 py-3 text-sm font-bold border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400 flex items-center gap-2">
+                        <i class="fas fa-exchange-alt"></i> 1. Pantau Peminjaman & Pengembalian
+                        <span id="badgeCountPinjamPetugas" class="px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-800">0</span>
+                    </button>
+                    <button onclick="switchPetugasSubTab('kelola')" id="subtab-btn-kelola" class="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400 flex items-center gap-2">
+                        <i class="fas fa-sliders-h"></i> 2. Kelola Stok & Status Alat (Baik / Rusak)
+                    </button>
+                    <button onclick="openSpreadsheetModal()" class="ml-auto px-4 py-3 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1.5">
+                        <i class="fas fa-code"></i> Setup Apps Script & Google Sheet
+                    </button>
+                </div>
+
+                <!-- SUB-TAB A: PANTAU PEMINJAMAN & KONFIRMASI PENGEMBALIAN -->
+                <div id="petugas-subtab-pantau" class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <div class="p-4 border-b border-gray-200 dark:border-slate-700 flex flex-wrap justify-between items-center gap-3">
+                        <div>
+                            <h4 class="font-bold text-gray-800 dark:text-white">Daftar Peminjaman & Verifikasi Pengembalian Alat</h4>
+                            <p class="text-xs text-gray-500">Klik tombol <strong>"Proses Kembali"</strong> saat mahasiswa mengembalikan alat untuk menambah stok kembali.</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <select id="filterStatusPinjam" onchange="renderPetugasPinjaman()" class="text-xs border border-gray-300 dark:border-slate-600 dark:bg-slate-700 rounded-lg px-3 py-2">
+                                <option value="Semua">Semua Status</option>
+                                <option value="Dipinjam">Sedang Dipinjam</option>
+                                <option value="Sudah Kembali">Sudah Kembali</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead>
+                                <tr class="bg-gray-50 dark:bg-slate-700/60 text-gray-600 dark:text-slate-300 text-xs uppercase">
+                                    <th class="py-3 px-4">Waktu Pinjam</th>
+                                    <th class="py-3 px-4">Mahasiswa / Peminjam</th>
+                                    <th class="py-3 px-4">Alat & Jumlah</th>
+                                    <th class="py-3 px-4">Keperluan</th>
+                                    <th class="py-3 px-4 text-center">Status Pinjam</th>
+                                    <th class="py-3 px-4 text-center">Aksi Petugas</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabel-petugas-pinjaman-body" class="divide-y divide-gray-100 dark:divide-slate-700">
+                                <!-- Diisi oleh JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- SUB-TAB B: KELOLA INVENTARIS ALAT (+/- STOK & STATUS BAIK/RUSAK) -->
+                <div id="petugas-subtab-kelola" class="hidden bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <div class="p-4 border-b border-gray-200 dark:border-slate-700 flex flex-wrap justify-between items-center gap-3">
+                        <div>
+                            <h4 class="font-bold text-gray-800 dark:text-white">Manajemen Inventaris, Stok Unit, dan Status Kondisi Alat</h4>
+                            <p class="text-xs text-gray-500">Gunakan tombol <strong>(-)</strong> dan <strong>(+)</strong> untuk mengatur jumlah unit, atau klik tombol kondisi untuk mengubah <strong>Baik / Rusak</strong>.</p>
+                        </div>
+                        <button onclick="openTambahAlatModal()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-xs flex items-center gap-1.5">
+                            <i class="fas fa-plus"></i> Tambah Alat Baru
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead>
+                                <tr class="bg-gray-50 dark:bg-slate-700/60 text-gray-600 dark:text-slate-300 text-xs uppercase">
+                                    <th class="py-3 px-4">Alat</th>
+                                    <th class="py-3 px-4">Kategori</th>
+                                    <th class="py-3 px-4 text-center">Atur Jumlah Stok</th>
+                                    <th class="py-3 px-4 text-center">Status Kondisi Alat</th>
+                                    <th class="py-3 px-4 text-center">Hapus</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabel-petugas-inventaris-body" class="divide-y divide-gray-100 dark:divide-slate-700">
+                                <!-- Diisi oleh JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ========================================================= -->
+            <!-- VIEW 3: TABEL INVENTARIS PUBLIK                           -->
+            <!-- ========================================================= -->
+            <div id="view-tabel" class="hidden">
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <div class="p-4 border-b border-gray-200 dark:border-slate-700 flex flex-wrap justify-between items-center gap-3">
+                        <div>
+                            <h3 class="font-bold text-gray-800 dark:text-white">Tabel Daftar Inventaris Alat Laboratorium Fikomm</h3>
+                            <p class="text-xs text-gray-500">Menampilkan status ketersediaan unit dan kondisi kelayakan alat</p>
+                        </div>
+                        <button onclick="handlePetugasAccess()" class="text-xs bg-indigo-50 dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 font-semibold px-3.5 py-2 rounded-lg">
+                            <i class="fas fa-edit mr-1"></i> Edit di Mode Petugas
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead>
+                                <tr class="bg-gray-50 dark:bg-slate-700/60 text-gray-600 dark:text-slate-300 text-xs uppercase">
+                                    <th class="py-3 px-4">Kode</th>
+                                    <th class="py-3 px-4">Nama Alat</th>
+                                    <th class="py-3 px-4">Kategori</th>
+                                    <th class="py-3 px-4">Spesifikasi</th>
+                                    <th class="py-3 px-4 text-center">Kondisi</th>
+                                    <th class="py-3 px-4 text-center">Stok</th>
+                                    <th class="py-3 px-4 text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabel-inventaris-body" class="divide-y divide-gray-100 dark:divide-slate-700">
+                                <!-- Diisi via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================================= -->
+            <!-- VIEW 4: RIWAYAT PEMINJAMAN                                -->
+            <!-- ========================================================= -->
+            <div id="view-riwayat" class="hidden">
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <div class="p-4 border-b border-gray-200 dark:border-slate-700 flex flex-wrap justify-between items-center gap-3">
+                        <div>
+                            <h3 class="font-bold text-gray-800 dark:text-white">Daftar Status Peminjaman Mahasiswa</h3>
+                            <p class="text-xs text-gray-500">Untuk menandai alat sudah kembali, silakan masuk ke <strong>Mode Petugas</strong>.</p>
+                        </div>
+                        <button onclick="handlePetugasAccess()" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-3.5 py-2 rounded-lg">
+                            <i class="fas fa-user-shield mr-1"></i> Verifikasi Pengembalian (Petugas)
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead>
+                                <tr class="bg-gray-50 dark:bg-slate-700/60 text-gray-600 dark:text-slate-300 text-xs uppercase">
+                                    <th class="py-3 px-4">Waktu</th>
+                                    <th class="py-3 px-4">Peminjam (NIM)</th>
+                                    <th class="py-3 px-4">Alat Dipinjam</th>
+                                    <th class="py-3 px-4">Tgl Pinjam</th>
+                                    <th class="py-3 px-4">Keperluan</th>
+                                    <th class="py-3 px-4 text-center">Status Pengembalian</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabel-riwayat-body" class="divide-y divide-gray-100 dark:divide-slate-700">
+                                <!-- Diisi via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL 1: FORM PEMINJAMAN ALAT                                         -->
+    <!-- ===================================================================== -->
+    <div id="pinjamModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-xl max-w-md w-full shadow-2xl border border-gray-100 dark:border-slate-700 overflow-hidden">
+            <div class="bg-blue-600 px-6 py-4 flex justify-between items-center text-white">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <i class="fas fa-clipboard-check"></i> Formulir Peminjaman Alat
+                </h3>
+                <button onclick="closePinjamModal()" class="text-white/80 hover:text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="formPeminjaman" onsubmit="submitPeminjaman(event)" class="p-6 space-y-4">
+                <input type="hidden" id="modalAlatId">
+                
+                <div class="bg-blue-50 dark:bg-slate-700/60 p-3 rounded-lg flex items-center gap-3">
+                    <img id="modalAlatImg" src="" alt="Alat" class="w-12 h-12 object-contain bg-white rounded p-1 border">
+                    <div>
+                        <p id="modalAlatKode" class="text-[11px] font-bold text-blue-600 dark:text-blue-400"></p>
+                        <h4 id="modalAlatNama" class="text-sm font-bold text-gray-800 dark:text-white"></h4>
+                        <p id="modalAlatStok" class="text-xs text-gray-500 dark:text-gray-300"></p>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Nama Lengkap Peminjam *</label>
+                    <input type="text" id="inputNama" required placeholder="Contoh: Raka Pratama" class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 dark:bg-slate-700 rounded-lg focus:outline-none focus:border-blue-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">NIM / NIP *</label>
+                        <input type="text" id="inputNim" required placeholder="210304001" class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 dark:bg-slate-700 rounded-lg focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">No. WhatsApp Aktif *</label>
+                        <input type="tel" id="inputWa" required placeholder="08123456789" class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 dark:bg-slate-700 rounded-lg focus:outline-none focus:border-blue-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Program Studi</label>
+                        <select id="inputProdi" class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 dark:bg-slate-700 rounded-lg focus:outline-none focus:border-blue-500">
+                            <option value="Ilmu Komunikasi">Ilmu Komunikasi</option>
+                            <option value="Broadcasting">Broadcasting</option>
+                            <option value="Jurnalistik">Jurnalistik</option>
+                            <option value="Public Relations">Public Relations</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Jumlah Unit *</label>
+                        <input type="number" id="inputJumlah" min="1" max="5" value="1" required class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 dark:bg-slate-700 rounded-lg focus:outline-none focus:border-blue-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Tanggal Pinjam *</label>
+                        <input type="date" id="inputTanggal" required class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 dark:bg-slate-700 rounded-lg focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Rencana Kembali *</label>
+                        <input type="date" id="inputTanggalKembali" required class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 dark:bg-slate-700 rounded-lg focus:outline-none focus:border-blue-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Keperluan Praktikum / Liputan *</label>
+                    <textarea id="inputKeperluan" rows="2" required placeholder="Contoh: Liputan Tugas Akhir Studio TV..." class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 dark:bg-slate-700 rounded-lg focus:outline-none focus:border-blue-500"></textarea>
+                </div>
+
+                <div class="pt-2 flex gap-2">
+                    <button type="button" onclick="closePinjamModal()" class="flex-1 py-2.5 text-sm font-medium border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Batal</button>
+                    <button type="submit" class="flex-1 py-2.5 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow">Ajukan Pinjam</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL 5: PENGATURAN GOOGLE SHEETS DATA CENTER & APPS SCRIPT           -->
+    <!-- ===================================================================== -->
+    <div id="spreadsheetModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-gray-100 dark:border-slate-700 overflow-hidden">
+            <div class="bg-emerald-600 px-6 py-4 flex justify-between items-center text-white shrink-0">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <i class="fas fa-table"></i> Data Center Google Sheets & Multi-Device Sync
+                </h3>
+                <button onclick="closeSpreadsheetModal()" class="text-white/80 hover:text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4 text-sm overflow-y-auto">
+                <!-- Info Spreadsheet Terhubung -->
+                <div class="bg-emerald-50 dark:bg-emerald-950/40 p-4 rounded-xl border border-emerald-200 dark:border-emerald-800 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-emerald-600 text-white">Spreadsheet Terhubung</span>
+                        <h4 class="font-bold text-gray-800 dark:text-white mt-1">Database Utama Laboratorium Fikomm</h4>
+                        <p class="text-xs text-gray-500 dark:text-slate-300 font-mono break-all">ID: 1TDfsWQNSmwHWFhr6VzmcCSfV89KBSY4qVa9U2slCqlo</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <a href="https://docs.google.com/spreadsheets/d/1TDfsWQNSmwHWFhr6VzmcCSfV89KBSY4qVa9U2slCqlo/edit?usp=sharing" target="_blank" rel="noopener noreferrer"
+                           class="px-3.5 py-2 bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 rounded-lg text-xs font-bold hover:bg-emerald-100 flex items-center gap-1.5">
+                            <i class="fas fa-external-link-alt"></i> Buka Sheet
+                        </a>
+                        <button type="button" onclick="pullFromGoogleSheetDirect(true)" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-xs">
+                            <i class="fas fa-cloud-download-alt"></i> Tarik Data dari Sheet
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Cara Kerja Multi-Device -->
+                <div class="p-3.5 rounded-lg bg-blue-50 dark:bg-slate-700/50 border border-blue-100 dark:border-slate-600 text-xs space-y-1">
+                    <p class="font-bold text-blue-800 dark:text-blue-300"><i class="fas fa-wifi mr-1"></i> Sinkronisasi Otomatis Multi-Device Aktif:</p>
+                    <p class="text-gray-600 dark:text-gray-300 leading-relaxed">
+                        Website ini sudah dilengkapi <strong>Cloud Sync Real-Time</strong> lintas perangkat serta terhubung ke Google Sheets Anda. Agar setiap peminjaman & perubahan stok dari website juga <strong>otomatis menulis (update) baris di dalam Google Sheets</strong> Anda, pasang kode Google Apps Script di bawah ini pada Spreadsheet Anda:
+                    </p>
+                </div>
+
+                <!-- Input URL Web App Google Apps Script -->
+                <div>
+                    <label class="block text-xs font-bold uppercase text-gray-600 dark:text-gray-300 mb-1">
+                        URL Web App Google Apps Script (Untuk Update Otomatis 2 Arah ke Sheet)
+                    </label>
+                    <div class="flex gap-2">
+                        <input type="url" id="inputApiUrl" placeholder="https://script.google.com/macros/s/AKfycb.../exec" 
+                            class="flex-1 px-3 py-2 text-xs md:text-sm border border-gray-300 dark:border-slate-600 dark:bg-slate-700 rounded-lg focus:outline-none focus:border-emerald-500">
+                        <button type="button" onclick="saveAndSyncSpreadsheet()" class="px-4 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow">
+                            Simpan URL
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Langkah & Kode Google Apps Script -->
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center">
+                        <label class="text-xs font-bold uppercase text-gray-600 dark:text-gray-300">
+                            <i class="fas fa-code text-indigo-500 mr-1"></i> Kode Google Apps Script (Khusus Spreadsheet Anda)
+                        </label>
+                        <button type="button" onclick="copyAppsScriptCode()" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-md flex items-center gap-1.5">
+                            <i class="fas fa-copy"></i> Salin Kode Apps Script
+                        </button>
+                    </div>
+                    <ol class="text-xs text-gray-500 dark:text-gray-400 list-decimal list-inside space-y-1 bg-gray-50 dark:bg-slate-900/50 p-3 rounded-lg border border-gray-200 dark:border-slate-700">
+                        <li>Buka Google Sheet Anda di atas, lalu klik menu <strong>Ekstensi &gt; Apps Script</strong>.</li>
+                        <li>Hapus semua kode yang ada, lalu <strong>Tempel (Paste)</strong> kode di bawah ini dan tekan <strong>Simpan (Ctrl+S)</strong>.</li>
+                        <li>Klik tombol <strong>Terapkan (Deploy) &gt; Deployment Baru</strong>, pilih jenis <strong>Aplikasi Web (Web App)</strong>.</li>
+                        <li>Pada bagian <em>"Siapa yang memiliki akses"</em> pilih <strong>Siapa saja (Anyone)</strong>, lalu klik <strong>Terapkan</strong>.</li>
+                        <li>Salin <strong>URL Aplikasi Web</strong> yang muncul, lalu tempelkan ke kolom URL di atas dan klik <strong>Simpan URL</strong>.</li>
+                    </ol>
+                    <textarea id="appsScriptCodeArea" readonly rows="7" class="w-full p-3 font-mono text-[11px] bg-slate-900 text-emerald-400 rounded-lg border border-slate-700 focus:outline-none"></textarea>
+                </div>
+
+                <div class="pt-2 flex flex-wrap gap-2 justify-between items-center border-t border-gray-100 dark:border-slate-700">
+                    <button type="button" onclick="openResetConfirmModal()" class="px-3.5 py-2 text-xs font-medium text-red-600 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-50">
+                        Reset 23 Alat Default
+                    </button>
+                    <div class="flex gap-2">
+                        <button type="button" onclick="pushFullDataToSheet()" class="px-4 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow">
+                            <i class="fas fa-upload mr-1"></i> Inisialisasi / Isi Sheet Sekarang
+                        </button>
+                        <button type="button" onclick="closeSpreadsheetModal()" class="px-4 py-2 text-xs font-medium border border-gray-300 dark:border-slate-600 rounded-lg">
+                            Tutup
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 6: KONFIRMASI RESET DATA -->
+    <div id="resetConfirmModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-xl max-w-sm w-full p-6 shadow-2xl border border-gray-100 dark:border-slate-700 text-center space-y-4">
+            <div class="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto text-xl">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h3 class="font-bold text-base text-gray-800 dark:text-white">Reset Data Inventaris?</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Tindakan ini akan mengembalikan daftar 23 alat beserta stok dan kondisinya ke pengaturan awal Lab Fikomm.</p>
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeResetConfirmModal()" class="flex-1 py-2 text-xs font-semibold border border-gray-300 dark:border-slate-600 rounded-lg">Batal</button>
+                <button onclick="confirmResetDefaultData()" class="flex-1 py-2 text-xs font-semibold bg-red-600 hover:bg-red-700 text-white rounded-lg">Ya, Reset Data</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toastNotification" class="fixed bottom-5 right-5 z-50 hidden bg-slate-900 text-white text-xs font-medium px-4 py-3 rounded-lg shadow-lg flex items-center gap-2.5 border border-slate-700">
+        <i class="fas fa-check-circle text-emerald-400 text-sm"></i>
+        <span id="toastMessage">Berhasil!</span>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- JAVASCRIPT UTAMA APLIKASI + CLOUD MULTI-DEVICE + GOOGLE SHEETS SYNC   -->
+    <!-- ===================================================================== -->
+    <script>
+        // KONFIGURASI SPREADSHEET DATA CENTER USER
+        const SPREADSHEET_ID = '1TDfsWQNSmwHWFhr6VzmcCSfV89KBSY4qVa9U2slCqlo';
+        const SPREADSHEET_EDIT_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit?usp=sharing`;
+
+        // 1. DATA DEFAULT 23 ALAT LABORATORIUM FIKOMM (Dilengkapi Properti Kondisi: 'Baik' / 'Rusak')
+        const defaultDataAlat = [
+            // Lensa Kamera
+            { ID_Alat: 'LNS-01', Nama_Alat: 'Lensa Canon 18-135mm F4.0', Kategori: 'Lensa', Stok_Tersedia: 1, Kondisi: 'Baik', Spesifikasi: 'EF-S Zoom Lens IS USM', Gambar_URL: 'https://images.unsplash.com/photo-1617005082133-548c4dd27f35?auto=format&fit=crop&w=500&q=80' },
+            { ID_Alat: 'LNS-02', Nama_Alat: 'Lensa Canon 50mm F1.8', Kategori: 'Lensa', Stok_Tersedia: 1, Kondisi: 'Baik', Spesifikasi: 'EF Prime Fix Lens STM', Gambar_URL: 'https://images.unsplash.com/photo-1516724562728-afc824a36e84?auto=format&fit=crop&w=500&q=80' },
+            { ID_Alat: 'LNS-03', Nama_Alat: 'Lensa Canon 10-22mm F4.0', Kategori: 'Lensa', Stok_Tersedia: 1, Kondisi: 'Baik', Spesifikasi: 'Ultra Wide Zoom Lens USM', Gambar_URL: 'https://images.unsplash.com/photo-1617005082133-548c4dd27f35?auto=format&fit=crop&w=500&q=80' },
+            { ID_Alat: 'LNS-04', Nama_Alat: 'Lensa Sony FE 24-70mm F2.8 GM', Kategori: 'Lensa', Stok_Tersedia: 2, Kondisi: 'Baik', Spesifikasi: 'G Master Standard Zoom', Gambar_URL: 'https://images.unsplash.com/photo-1617005082133-548c4dd27f35?auto=format&fit=crop&w=500&q=80' },
+            { ID_Alat: 'LNS-05', Nama_Alat: 'Lensa Sony FE 70-200mm F2.8', Kategori: 'Lensa', Stok_Tersedia: 1, Kondisi: 'Baik', Spesifikasi: 'Telephoto Zoom Lens OSS', Gambar_URL: 'https://images.unsplash.com/photo-1617005082133-548c4dd27f35?auto=format&fit=crop&w=500&q=80' },
+
+            // Kamera Broadcasting & Mirrorless
+            { ID_Alat: 'CAM-01', Nama_Alat: 'Sony Alpha a7S III Mirrorless', Kategori: 'Kamera', Stok_Tersedia: 2, Kondisi: 'Baik', Spesifikasi: '4K 120p, 10-bit 4:2:2 Full Frame', Gambar_URL: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=500&q=80' },
+            { ID_Alat: 'CAM-02', Nama_Alat: 'Canon EOS R5 Mirrorless', Kategori: 'Kamera', Stok_Tersedia: 1, Kondisi: 'Baik', Spesifikasi: '45MP Full-Frame, 8K RAW Video', Gambar_URL: 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?auto=format&fit=crop&w=500&q=80' },
+            { ID_Alat: 'CAM-03', Nama_Alat: 'Panasonic Lumix GH5 II', Kategori: 'Kamera', Stok_Tersedia: 3, Kondisi: 'Baik', Spesifikasi: 'MFT Live Streaming Cinema 4K', Gambar_URL: 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=500&q=80' },
+            { ID_Alat: 'CAM-04', Nama_Alat: 'Camcorder Sony PXW-Z190 4K', Kategori: 'Kamera', Stok_Tersedia: 2, Kondisi: 'Baik', Spesifikasi: '3-CMOS 1/3" Broadcast Camcorder', Gambar_URL: 'https://images.unsplash.com/photo-1585647347384-2593bc35786b?auto=format&fit=crop&w=500&q=80' },
+            { ID_Alat: 'CAM-05', Nama_Alat: 'Canon EOS 80D DSLR Kit', Kategori: 'Kamera', Stok_Tersedia: 4, Kondisi: 'Baik', Spesifikasi: '24.2MP APS-C Dual Pixel AF', Gambar_URL: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=500&q=80' },
+
+            // Audio & Podcast
+            { ID_Alat: 'AUD-01', Nama_Alat: 'Rode NTG4+ Shotgun Microphone', Kategori: 'Audio', Stok_Tersedia: 3, Kondisi: 'Baik', Spesifikasi: 'Directional Condenser Boom Mic', Gambar_URL: 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?auto=format&fit=crop&w=500&q=80' },
+            { ID_Alat: 'AUD-02', Nama_Alat: 'Zoom H6 Handy Recorder', Kategori: 'Audio', Stok_Tersedia: 2, Kondisi: 'Baik', Spesifikasi: '6-Track Portable Audio Recorder', Gambar_URL: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?auto=format&fit=crop&w=500&q=80' },
+            { ID_Alat: 'AUD-03', Nama_Alat: 'Sennheiser EW 112P G4 Wireless', Kategori: 'Audio', Stok_Tersedia: 4, Kondisi: 'Baik', Spesifikasi: 'Clip-On Lavalier Wireless System', Gambar_URL: 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?auto=format&fit=crop&w=500&q=80' },
+            { ID_Alat: 'AUD-04', Nama_Alat: 'Saramonic Blink 500 Pro B2', Kategori: 'Audio', Stok_Tersedia: 3, Kondisi: 'Baik', Spesifikasi: 'Dual Channel Wireless Mic', Gambar_URL: 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?auto=format&fit=crop&w=500&q=80' },
+
+            // Lighting Studio
+            { ID_Alat: 'LIG-01', Nama_Alat: 'Godox SL-60W LED Video Light', Kategori: 'Lighting', Stok_Tersedia: 4, Kondisi: 'Baik', Spesifikasi: '5600K Daylight Balanced Bowens', Gambar_URL: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=500&q=80' },
+            { ID_Alat: 'LIG-02', Nama_Alat: 'Aputure Light Storm 120d II', Kategori: 'Lighting', Stok_Tersedia: 2, Kondisi: 'Baik', Spesifikasi: 'COB LED Studio Light + Softbox', Gambar_URL: 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?auto=format&fit=crop&w=500&q=80' },
+            { ID_Alat: 'LIG-03', Nama_Alat: 'Ring Light Studio 18 Inch LED', Kategori: 'Lighting', Stok_Tersedia: 5, Kondisi: 'Baik', Spesifikasi: 'Bi-Color 3200K-5600K + Stand', Gambar_URL: 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=500&q=80' },
+            { ID_Alat: 'LIG-04', Nama_Alat: 'Reflektor Cahaya 5-in-1 (110cm)', Kategori: 'Lighting', Stok_Tersedia: 6, Kondisi: 'Baik', Spesifikasi: 'Gold, Silver, White, Black, Translucent', Gambar_URL: 'https://images.unsplash.com/photo-1516724562728-afc824a36e84?auto=format&fit=crop&w=500&q=80' },
+
+            // Aksesoris & Pendukung Lab
+            { ID_Alat: 'ACC-01', Nama_Alat: 'DJI RS 3 Gimbal Stabilizer', Kategori: 'Aksesoris', Stok_Tersedia: 2, Kondisi: 'Baik', Spesifikasi: '3-Axis Motorized Camera Stabilizer', Gambar_URL: 'https://images.unsplash.com/photo-1585647347384-2593bc35786b?auto=format&fit=crop&w=500&q=80' },
+            { ID_Alat: 'ACC-02', Nama_Alat: 'Tripod Video Manfrotto 504X', Kategori: 'Aksesoris', Stok_Tersedia: 4, Kondisi: 'Baik', Spesifikasi: 'Fluid Video Head Aluminum Tripod', Gambar_URL: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=500&q=80' },
+            { ID_Alat: 'ACC-03', Nama_Alat: 'Blackmagic ATEM Mini Pro', Kategori: 'Aksesoris', Stok_Tersedia: 1, Kondisi: 'Baik', Spesifikasi: '4-Input HDMI Live Stream Switcher', Gambar_URL: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?auto=format&fit=crop&w=500&q=80' },
+            { ID_Alat: 'ACC-04', Nama_Alat: 'Field Monitor FeelWorld F6 Plus', Kategori: 'Aksesoris', Stok_Tersedia: 3, Kondisi: 'Baik', Spesifikasi: '5.5 Inch Touch Screen 3D LUT', Gambar_URL: 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=500&q=80' },
+            { ID_Alat: 'LAB-01', Nama_Alat: 'Green Screen Backdrop 3x6 Meter', Kategori: 'Alat Lab', Stok_Tersedia: 2, Kondisi: 'Baik', Spesifikasi: 'Kain Chromakey Studio + Tiang', Gambar_URL: 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?auto=format&fit=crop&w=500&q=80' }
+        ];
+
+        // State Aplikasi
+        let dataAlatLab = JSON.parse(localStorage.getItem('fikomm_inventory_v2')) || JSON.parse(JSON.stringify(defaultDataAlat));
+        let riwayatPeminjaman = JSON.parse(localStorage.getItem('fikomm_loans_v2')) || [];
+        let spreadsheetApiUrl = localStorage.getItem('fikomm_api_url') || '';
+        let isPetugasLoggedIn = sessionStorage.getItem('fikomm_petugas_auth') === 'true';
+        const PETUGAS_PASSWORD = 'fikomm123';
+
+        // Callback sinkronisasi Cloud (diisi oleh modul Firebase di bawah)
+        window.syncStateToCloud = null;
+
+        // KODE GOOGLE APPS SCRIPT SIAP PAKAI (TERIKAT KE SPREADSHEET ID USER)
+        const GOOGLE_APPS_SCRIPT_TEMPLATE = `// ============================================================================
+// GOOGLE APPS SCRIPT - DATA CENTER LABORATORIUM FIKOMM (2-WAY SYNC)
+// Terhubung ke Spreadsheet ID: ${SPREADSHEET_ID}
+// ============================================================================
+const SHEET_ID = '${SPREADSHEET_ID}';
+
+function doGet(e) {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const alatSheet = getOrCreateSheet(ss, 'Alat', ['ID_Alat', 'Nama_Alat', 'Kategori', 'Stok_Tersedia', 'Kondisi', 'Spesifikasi', 'Gambar_URL']);
+  const pinjamSheet = getOrCreateSheet(ss, 'Peminjaman', ['loanId', 'waktu', 'tanggalPinjam', 'tanggalKembali', 'nama', 'nim', 'wa', 'prodi', 'idAlat', 'namaAlat', 'jumlah', 'keperluan', 'status', 'waktuKembali', 'kondisiSaatKembali', 'catatanPetugas']);
+
+  const payload = {
+    status: 'success',
+    inventory: sheetToObjects(alatSheet),
+    loans: sheetToObjects(pinjamSheet)
+  };
+
+  return ContentService.createTextOutput(JSON.stringify(payload))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  try {
+    const body = JSON.parse(e.postData.contents);
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const alatSheet = getOrCreateSheet(ss, 'Alat', ['ID_Alat', 'Nama_Alat', 'Kategori', 'Stok_Tersedia', 'Kondisi', 'Spesifikasi', 'Gambar_URL']);
+    const pinjamSheet = getOrCreateSheet(ss, 'Peminjaman', ['loanId', 'waktu', 'tanggalPinjam', 'tanggalKembali', 'nama', 'nim', 'wa', 'prodi', 'idAlat', 'namaAlat', 'jumlah', 'keperluan', 'status', 'waktuKembali', 'kondisiSaatKembali', 'catatanPetugas']);
+
+    if (Array.isArray(body.inventory)) {
+      writeObjectsToSheet(alatSheet, ['ID_Alat', 'Nama_Alat', 'Kategori', 'Stok_Tersedia', 'Kondisi', 'Spesifikasi', 'Gambar_URL'], body.inventory);
+    }
+    if (Array.isArray(body.loans)) {
+      writeObjectsToSheet(pinjamSheet, ['loanId', 'waktu', 'tanggalPinjam', 'tanggalKembali', 'nama', 'nim', 'wa', 'prodi', 'idAlat', 'namaAlat', 'jumlah', 'keperluan', 'status', 'waktuKembali', 'kondisiSaatKembali', 'catatanPetugas'], body.loans);
+    }
+
+    return ContentService.createTextOutput(JSON.stringify({ status: 'ok' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function getOrCreateSheet(ss, name, headers) {
+  let sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    sheet.appendRow(headers);
+  } else if (sheet.getLastRow() === 0) {
+    sheet.appendRow(headers);
+  }
+  return sheet;
+}
+
+function sheetToObjects(sheet) {
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return [];
+  const headers = data[0];
+  return data.slice(1).map(row => {
+    let obj = {};
+    headers.forEach((h, i) => obj[h] = row[i]);
+    return obj;
+  });
+}
+
+function writeObjectsToSheet(sheet, headers, arr) {
+  sheet.clearContents();
+  const rows = [headers];
+  arr.forEach(item => {
+    rows.push(headers.map(h => item[h] !== undefined && item[h] !== null ? item[h] : ''));
+  });
+  sheet.getRange(1, 1, rows.length, headers.length).setValues(rows);
+}`;
+
+        // Simpan ke Local, Cloud Multi-Device, dan Google Sheet
+        function saveAllState(triggerSheetPush = true) {
+            localStorage.setItem('fikomm_inventory_v2', JSON.stringify(dataAlatLab));
+            localStorage.setItem('fikomm_loans_v2', JSON.stringify(riwayatPeminjaman));
+            updateSummaryStats();
+
+            // 1. Sinkronkan ke Cloud Real-Time (lintas device instan)
+            if (typeof window.syncStateToCloud === 'function') {
+                window.syncStateToCloud(dataAlatLab, riwayatPeminjaman);
+            }
+
+            // 2. Sinkronkan ke Google Sheets (jika Web App URL diisi)
+            if (triggerSheetPush && spreadsheetApiUrl) {
+                pushToGoogleSheetsWebhook();
+            }
+        }
+
+        function saveInventoryToStorage() {
+            saveAllState(true);
+        }
+
+        function saveLoansToStorage() {
+            saveAllState(true);
+        }
+
+        // Kirim perubahan ke Google Sheets via Apps Script Web App
+        async function pushToGoogleSheetsWebhook() {
+            if (!spreadsheetApiUrl) return;
+            try {
+                document.getElementById('syncStatusText').textContent = 'Menyimpan perubahan ke Google Sheet...';
+                await fetch(spreadsheetApiUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        action: 'syncAll',
+                        spreadsheetId: SPREADSHEET_ID,
+                        inventory: dataAlatLab,
+                        loans: riwayatPeminjaman
+                    })
+                });
+                document.getElementById('syncStatusText').textContent = 'Tersinkronisasi: Cloud Multi-Device & Google Sheet';
+            } catch (err) {
+                console.warn('Gagal push ke Apps Script:', err);
+            }
+        }
+
+        async function pushFullDataToSheet() {
+            if (!spreadsheetApiUrl) {
+                openSpreadsheetModal();
+                showToast('Masukkan URL Web App Google Apps Script terlebih dahulu untuk menulis ke Sheet!');
+                return;
+            }
+            await pushToGoogleSheetsWebhook();
+            showToast('Seluruh data alat & peminjaman berhasil dikirim ke Google Sheet!');
+        }
+
+        // BACA LANGSUNG DARI GOOGLE SHEET USER (Tanpa perlu setup Apps Script jika Sheet publik)
+        function pullFromGoogleSheetDirect(isManualClick = false) {
+            const icon = document.getElementById('iconSyncSheet');
+            if (icon) icon.classList.add('fa-spin');
+            document.getElementById('syncStatusText').textContent = 'Menarik data dari Google Sheet Data Center...';
+
+            // Jika user sudah punya URL Apps Script, tarik via Apps Script dulu
+            if (spreadsheetApiUrl) {
+                fetchFromGoogleSheets(spreadsheetApiUrl).finally(() => {
+                    if (icon) icon.classList.remove('fa-spin');
+                });
+                return;
+            }
+
+            // Gunakan Google Visualization JSONP Endpoint untuk membaca langsung dari ID Spreadsheet User
+            const callbackName = 'gvizCallback_' + Date.now();
+            window[callbackName] = function(response) {
+                if (icon) icon.classList.remove('fa-spin');
+                delete window[callbackName];
+                const scriptEl = document.getElementById(callbackName);
+                if (scriptEl) scriptEl.remove();
+
+                try {
+                    if (response && response.table && response.table.rows && response.table.rows.length > 0) {
+                        const cols = response.table.cols.map(c => (c.label || '').trim());
+                        const rows = response.table.rows;
+                        const parsedItems = [];
+
+                        rows.forEach(r => {
+                            const cells = r.c || [];
+                            const getVal = (idx) => (cells[idx] && cells[idx].v !== null && cells[idx].v !== undefined) ? cells[idx].v : '';
+                            
+                            // Deteksi apakah baris pertama adalah header
+                            const firstCell = String(getVal(0)).trim();
+                            if (!firstCell || firstCell === 'ID_Alat' || firstCell === 'Kode') return;
+
+                            parsedItems.push({
+                                ID_Alat: String(getVal(0)).trim(),
+                                Nama_Alat: String(getVal(1) || 'Alat Lab').trim(),
+                                Kategori: String(getVal(2) || 'Alat Lab').trim(),
+                                Stok_Tersedia: parseInt(getVal(3)) >= 0 ? parseInt(getVal(3)) : 1,
+                                Kondisi: String(getVal(4) || 'Baik').trim(),
+                                Spesifikasi: String(getVal(5) || '-').trim(),
+                                Gambar_URL: String(getVal(6) || '').trim()
+                            });
+                        });
+
+                        if (parsedItems.length > 0) {
+                            dataAlatLab = parsedItems;
+                            saveAllState(false);
+                            filterData();
+                            if (isPetugasLoggedIn) renderPetugasInventaris();
+                            document.getElementById('syncStatusText').textContent = `Terhubung ke Google Sheet (${parsedItems.length} Alat)`;
+                            if (isManualClick) showToast(`Berhasil menarik ${parsedItems.length} alat dari Google Sheet!`);
+                            return;
+                        }
+                    }
+                    document.getElementById('syncStatusText').textContent = 'Cloud Multi-Device Aktif • Sheet Siap Diinisialisasi';
+                    if (isManualClick) {
+                        showToast('Google Sheet masih kosong atau menggunakan tab default. Gunakan tombol "Isi Sheet Sekarang" di menu Google Sheet Center.');
+                    }
+                } catch (e) {
+                    console.warn('Gagal memproses respons gviz:', e);
+                    document.getElementById('syncStatusText').textContent = 'Cloud Multi-Device Aktif';
+                }
+            };
+
+            const script = document.createElement('script');
+            script.id = callbackName;
+            script.src = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json;responseHandler:${callbackName}`;
+            script.onerror = () => {
+                if (icon) icon.classList.remove('fa-spin');
+                document.getElementById('syncStatusText').textContent = 'Cloud Multi-Device Aktif';
+                if (isManualClick) showToast('Pastikan akses Google Sheet diatur ke "Siapa saja yang memiliki link"');
+            };
+            document.body.appendChild(script);
+        }
+
+        // 2. KONVERTER LINK GOOGLE DRIVE KE DIRECT IMAGE
+        function getDriveDirectUrl(url) {
+            if (!url) return 'https://placehold.co/400x300/e2e8f0/475569?text=Tanpa+Gambar';
+            if (url.includes('drive.google.com')) {
+                const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
+                if (match && match[1]) {
+                    return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w800`;
+                }
+            }
+            return url;
+        }
+
+        // 3. UPDATE STATISTIK SIDEBAR
+        function updateSummaryStats() {
+            const totalJenis = dataAlatLab.length;
+            const baikCount = dataAlatLab.filter(a => (a.Kondisi || 'Baik') === 'Baik').length;
+            const rusakCount = dataAlatLab.filter(a => a.Kondisi === 'Rusak').length;
+            const sedangDipinjamCount = riwayatPeminjaman.filter(r => r.status === 'Dipinjam').length;
+
+            document.getElementById('statTotalJenis').textContent = totalJenis;
+            document.getElementById('statKondisiBaik').textContent = baikCount;
+            document.getElementById('statKondisiRusak').textContent = rusakCount;
+            document.getElementById('statSedangDipinjam').textContent = sedangDipinjamCount;
+            document.getElementById('activeLoanBadgeSidebar').textContent = sedangDipinjamCount;
+            document.getElementById('badgeCountPinjamPetugas').textContent = sedangDipinjamCount;
+        }
+
+        // 4. RENDER KATALOG GRID (BERANDA)
+        function renderKatalog(data) {
+            const container = document.getElementById('katalog-container');
+            container.innerHTML = '';
+
+            if (data.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full bg-white dark:bg-slate-800 rounded-xl p-12 text-center border border-gray-200 dark:border-slate-700">
+                        <i class="fas fa-search text-4xl text-gray-300 dark:text-slate-600 mb-3"></i>
+                        <p class="text-base font-semibold text-gray-700 dark:text-gray-200">Alat tidak ditemukan</p>
+                        <p class="text-xs text-gray-400 mt-1">Coba gunakan kata kunci lain atau ubah filter di atas.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            data.forEach(alat => {
+                const stok = parseInt(alat.Stok_Tersedia) || 0;
+                const kondisi = alat.Kondisi || 'Baik';
+                const isRusak = kondisi === 'Rusak';
+                const canBorrow = stok > 0 && !isRusak;
+                const directImageUrl = getDriveDirectUrl(alat.Gambar_URL);
+
+                let statusBadgeClass = 'bg-emerald-500';
+                let statusBadgeText = 'TERSEDIA';
+                if (isRusak) {
+                    statusBadgeClass = 'bg-red-600';
+                    statusBadgeText = 'RUSAK / PERBAIKAN';
+                } else if (stok <= 0) {
+                    statusBadgeClass = 'bg-amber-500';
+                    statusBadgeText = 'STOK HABIS';
+                }
+
+                const kondisiBadge = isRusak
+                    ? `<span class="px-2 py-0.5 text-[10px] font-bold rounded bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300"><i class="fas fa-tools mr-1"></i>Kondisi: Rusak</span>`
+                    : `<span class="px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"><i class="fas fa-check-circle mr-1"></i>Kondisi: Baik</span>`;
+
+                const cardHTML = `
+                    <div class="bg-white dark:bg-slate-800 rounded-xl p-5 relative border ${isRusak ? 'border-red-300 dark:border-red-800/70' : 'border-gray-200/80 dark:border-slate-700'} hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center group">
+                        
+                        <!-- Badge Status Kiri Atas -->
+                        <div class="absolute top-3.5 left-3.5 ${statusBadgeClass} text-white text-[10px] font-bold px-2.5 py-1 rounded shadow-xs tracking-wider">
+                            ${statusBadgeText}
+                        </div>
+
+                        <!-- Kode Alat Kanan Atas -->
+                        <div class="absolute top-3.5 right-3.5 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 text-[10px] font-semibold px-2 py-1 rounded">
+                            ${alat.ID_Alat}
+                        </div>
+
+                        <!-- Bingkai Gambar Bulat -->
+                        <div class="w-36 h-36 rounded-full bg-gray-50 dark:bg-slate-700/50 border-4 ${isRusak ? 'border-red-100 dark:border-red-900/40' : 'border-gray-100 dark:border-slate-700'} flex items-center justify-center mb-3 mt-7 overflow-hidden p-3 group-hover:border-blue-100 transition-colors">
+                            <img src="${directImageUrl}" alt="${alat.Nama_Alat}" 
+                                class="w-full h-full object-contain drop-shadow-sm ${isRusak ? 'grayscale opacity-75' : 'group-hover:scale-105'} transition-transform duration-300" 
+                                onerror="this.onerror=null; this.src='https://placehold.co/400x400/2B275B/FFFFFF?text=${encodeURIComponent(alat.Nama_Alat)}'">
+                        </div>
+
+                        <!-- Kategori & Kondisi -->
+                        <div class="flex items-center justify-center gap-2 mb-1.5">
+                            <span class="text-[11px] text-blue-600 dark:text-blue-400 font-semibold tracking-wide uppercase">#${alat.Kategori}</span>
+                            ${kondisiBadge}
+                        </div>
+
+                        <!-- Nama Barang -->
+                        <h3 class="text-sm font-bold text-gray-800 dark:text-white uppercase leading-snug mb-1 line-clamp-2 min-h-[2.5rem]">
+                            ${alat.Nama_Alat}
+                        </h3>
+
+                        <!-- Spesifikasi Singkat -->
+                        <p class="text-xs text-gray-400 dark:text-slate-400 mb-2.5 line-clamp-1">${alat.Spesifikasi || '-'}</p>
+
+                        <!-- Sisa Stok -->
+                        <p class="text-[#b1a052] dark:text-amber-400 font-bold text-sm mb-4">
+                            Jumlah : ${stok} Unit
+                        </p>
+
+                        <!-- Tombol Pinjam -->
+                        <button onclick="openPinjamModal('${alat.ID_Alat}')" 
+                            class="mt-auto w-full border ${canBorrow ? 'border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-500 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 dark:hover:text-white' : 'border-gray-300 text-gray-400 dark:border-slate-600 dark:text-slate-500 cursor-not-allowed'} py-2 text-xs font-semibold rounded-lg transition-colors" 
+                            ${!canBorrow ? 'disabled' : ''}>
+                            <i class="fas ${isRusak ? 'fa-ban' : 'fa-hand-holding'} mr-1"></i> ${isRusak ? 'Sedang Perbaikan' : (stok > 0 ? 'Pinjam Barang' : 'Stok Habis')}
+                        </button>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', cardHTML);
+            });
+        }
+
+        // 5. RENDER TABEL INVENTARIS PUBLIK
+        function renderTabelInventaris(data) {
+            const tbody = document.getElementById('tabel-inventaris-body');
+            tbody.innerHTML = '';
+
+            data.forEach(alat => {
+                const stok = parseInt(alat.Stok_Tersedia) || 0;
+                const kondisi = alat.Kondisi || 'Baik';
+                const isRusak = kondisi === 'Rusak';
+                const canBorrow = stok > 0 && !isRusak;
+
+                const row = `
+                    <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/40">
+                        <td class="py-3 px-4 font-mono text-xs font-semibold text-blue-600 dark:text-blue-400">${alat.ID_Alat}</td>
+                        <td class="py-3 px-4 font-medium text-gray-800 dark:text-white">${alat.Nama_Alat}</td>
+                        <td class="py-3 px-4"><span class="px-2 py-1 text-xs rounded bg-gray-100 dark:bg-slate-700">${alat.Kategori}</span></td>
+                        <td class="py-3 px-4 text-xs text-gray-500 dark:text-slate-400">${alat.Spesifikasi || '-'}</td>
+                        <td class="py-3 px-4 text-center">
+                            <span class="px-2.5 py-1 text-[10px] font-bold uppercase rounded-full ${isRusak ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}">
+                                ${kondisi}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4 text-center font-bold ${stok > 0 ? 'text-emerald-600' : 'text-red-500'}">${stok} Unit</td>
+                        <td class="py-3 px-4 text-center">
+                            ${canBorrow 
+                                ? `<button onclick="openPinjamModal('${alat.ID_Alat}')" class="text-xs text-blue-600 hover:underline font-semibold">Pinjam</button>`
+                                : `<span class="text-xs text-gray-400">-</span>`
+                            }
+                        </td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        // 6. RENDER RIWAYAT PEMINJAMAN PUBLIK
+        function renderRiwayat() {
+            const tbody = document.getElementById('tabel-riwayat-body');
+            tbody.innerHTML = '';
+
+            if (riwayatPeminjaman.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-gray-400">Belum ada pengajuan peminjaman alat.</td></tr>`;
+                return;
+            }
+
+            riwayatPeminjaman.forEach(item => {
+                const isReturned = item.status === 'Sudah Kembali';
+                const statusBadge = isReturned
+                    ? `<span class="px-2.5 py-1 text-[10px] font-bold uppercase rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"><i class="fas fa-check mr-1"></i>Sudah Kembali (${item.waktuKembali || '-'})</span>`
+                    : `<span class="px-2.5 py-1 text-[10px] font-bold uppercase rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300"><i class="fas fa-clock mr-1"></i>Sedang Dipinjam</span>`;
+
+                const row = `
+                    <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/40">
+                        <td class="py-3 px-4 text-xs text-gray-400">${item.waktu}</td>
+                        <td class="py-3 px-4">
+                            <p class="font-semibold text-gray-800 dark:text-white">${item.nama}</p>
+                            <p class="text-xs text-gray-400">${item.nim} &bull; ${item.prodi} ${item.wa ? '&bull; ' + item.wa : ''}</p>
+                        </td>
+                        <td class="py-3 px-4 font-medium text-gray-800 dark:text-white">${item.namaAlat} <span class="text-xs text-blue-600 font-bold">(${item.jumlah} Unit)</span></td>
+                        <td class="py-3 px-4 text-xs">
+                            <span class="font-medium">${item.tanggalPinjam}</span>
+                            ${item.tanggalKembali ? `<br><span class="text-[10px] text-gray-400">s/d ${item.tanggalKembali}</span>` : ''}
+                        </td>
+                        <td class="py-3 px-4 text-xs text-gray-500 dark:text-slate-300">${item.keperluan}</td>
+                        <td class="py-3 px-4 text-center">${statusBadge}</td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        // =========================================================================
+        // 7. FITUR MODE PETUGAS: PANTAU PENGEMBALIAN & KELOLA INVENTARIS (+/- STOK)
+        // =========================================================================
+        function handlePetugasAccess() {
+            if (isPetugasLoggedIn) {
+                switchTab('petugas');
+            } else {
+                document.getElementById('loginErrorText').classList.add('hidden');
+                document.getElementById('inputPasswordPetugas').value = '';
+                const modal = document.getElementById('loginPetugasModal');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                setTimeout(() => document.getElementById('inputPasswordPetugas').focus(), 100);
+            }
+        }
+
+        function closeLoginPetugasModal() {
+            const modal = document.getElementById('loginPetugasModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function submitLoginPetugas(e) {
+            e.preventDefault();
+            const pass = document.getElementById('inputPasswordPetugas').value;
+            if (pass === PETUGAS_PASSWORD) {
+                isPetugasLoggedIn = true;
+                sessionStorage.setItem('fikomm_petugas_auth', 'true');
+                closeLoginPetugasModal();
+                updatePetugasUIState();
+                switchTab('petugas');
+                showToast('Berhasil masuk ke Mode Petugas Lab Fikomm!');
+            } else {
+                document.getElementById('loginErrorText').classList.remove('hidden');
+            }
+        }
+
+        function logoutPetugas() {
+            isPetugasLoggedIn = false;
+            sessionStorage.removeItem('fikomm_petugas_auth');
+            updatePetugasUIState();
+            switchTab('katalog');
+            showToast('Anda telah keluar dari Mode Petugas');
+        }
+
+        function updatePetugasUIState() {
+            const lockIcon = document.getElementById('lockIconSidebar');
+            const roleBadge = document.getElementById('roleBadgeSidebar');
+            const headerBadge = document.getElementById('petugasActiveIndicator');
+            const btnLogin = document.getElementById('btnSidebarLoginPetugas');
+            const btnLogout = document.getElementById('btnSidebarLogoutPetugas');
+
+            if (isPetugasLoggedIn) {
+                lockIcon.className = 'fas fa-unlock text-xs text-emerald-500';
+                roleBadge.textContent = 'Petugas Terverifikasi';
+                roleBadge.className = 'text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider';
+                headerBadge.classList.remove('hidden');
+                btnLogin.classList.add('hidden');
+                btnLogout.classList.remove('hidden');
+            } else {
+                lockIcon.className = 'fas fa-lock text-xs text-gray-400';
+                roleBadge.textContent = 'Mode Pengunjung';
+                roleBadge.className = 'text-[10px] font-semibold text-gray-400 dark:text-slate-400 uppercase tracking-wider';
+                headerBadge.classList.add('hidden');
+                btnLogin.classList.remove('hidden');
+                btnLogout.classList.add('hidden');
+            }
+        }
+
+        function switchPetugasSubTab(subtab) {
+            const pantauDiv = document.getElementById('petugas-subtab-pantau');
+            const kelolaDiv = document.getElementById('petugas-subtab-kelola');
+            const btnPantau = document.getElementById('subtab-btn-pantau');
+            const btnKelola = document.getElementById('subtab-btn-kelola');
+
+            if (subtab === 'pantau') {
+                pantauDiv.classList.remove('hidden');
+                kelolaDiv.classList.add('hidden');
+                btnPantau.className = 'px-5 py-3 text-sm font-bold border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400 flex items-center gap-2';
+                btnKelola.className = 'px-5 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400 flex items-center gap-2';
+                renderPetugasPinjaman();
+            } else {
+                pantauDiv.classList.add('hidden');
+                kelolaDiv.classList.remove('hidden');
+                btnKelola.className = 'px-5 py-3 text-sm font-bold border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400 flex items-center gap-2';
+                btnPantau.className = 'px-5 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400 flex items-center gap-2';
+                renderPetugasInventaris();
+            }
+        }
+
+        // Render Tabel Peminjaman di Dashboard Petugas
+        function renderPetugasPinjaman() {
+            const tbody = document.getElementById('tabel-petugas-pinjaman-body');
+            const filterVal = document.getElementById('filterStatusPinjam').value;
+            tbody.innerHTML = '';
+
+            const list = riwayatPeminjaman.filter(item => filterVal === 'Semua' || item.status === filterVal);
+
+            if (list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="py-10 text-center text-gray-400">Tidak ada data peminjaman untuk filter ini.</td></tr>`;
+                return;
+            }
+
+            list.forEach(item => {
+                const isReturned = item.status === 'Sudah Kembali';
+                const statusBadge = isReturned
+                    ? `<div class="inline-flex flex-col items-center">
+                        <span class="px-2.5 py-1 text-[10px] font-bold uppercase rounded-full bg-emerald-100 text-emerald-700"><i class="fas fa-check-circle mr-1"></i>Sudah Kembali</span>
+                        <span class="text-[10px] text-gray-400 mt-0.5">${item.waktuKembali || ''} (${item.kondisiSaatKembali || 'Baik'})</span>
+                       </div>`
+                    : `<span class="px-2.5 py-1 text-[10px] font-bold uppercase rounded-full bg-amber-100 text-amber-800"><i class="fas fa-hourglass-half mr-1"></i>Sedang Dipinjam</span>`;
+
+                const actionBtn = isReturned
+                    ? `<button onclick=" batalkanPengembalian('${item.loanId}')" class="text-xs text-gray-400 hover:text-red-500 underline" title="Kembalikan status menjadi Dipinjam">Batalkan</button>`
+                    : `<button onclick="openKembaliModal('${item.loanId}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-xs transition-colors">
+                        <i class="fas fa-undo-alt mr-1"></i> Proses Kembali
+                       </button>`;
+
+                const row = `
+                    <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/40">
+                        <td class="py-3 px-4 text-xs">
+                            <p class="font-semibold text-gray-700 dark:text-gray-200">${item.tanggalPinjam}</p>
+                            ${item.tanggalKembali ? `<p class="text-[10px] text-amber-600">Kembali: ${item.tanggalKembali}</p>` : ''}
+                            <p class="text-gray-400">${item.waktu}</p>
+                        </td>
+                        <td class="py-3 px-4">
+                            <p class="font-bold text-gray-800 dark:text-white">${item.nama}</p>
+                            <p class="text-xs text-gray-400">${item.nim} &bull; ${item.prodi}</p>
+                            ${item.wa ? `<p class="text-[11px] text-emerald-600 font-medium"><i class="fab fa-whatsapp mr-1"></i>${item.wa}</p>` : ''}
+                        </td>
+                        <td class="py-3 px-4">
+                            <p class="font-semibold text-gray-800 dark:text-white">${item.namaAlat}</p>
+                            <span class="text-xs font-bold text-indigo-600 dark:text-indigo-400">[${item.idAlat}] &bull; ${item.jumlah} Unit</span>
+                        </td>
+                        <td class="py-3 px-4 text-xs text-gray-500 dark:text-slate-300">
+                            ${item.keperluan}
+                            ${item.catatanPetugas ? `<p class="text-[11px] text-emerald-600 mt-1"><i class="fas fa-comment-dots mr-1"></i>Catatan: ${item.catatanPetugas}</p>` : ''}
+                        </td>
+                        <td class="py-3 px-4 text-center">${statusBadge}</td>
+                        <td class="py-3 px-4 text-center">${actionBtn}</td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        // Modal Konfirmasi Pengembalian Alat oleh Petugas
+        function openKembaliModal(loanId) {
+            const loan = riwayatPeminjaman.find(l => l.loanId === loanId);
+            if (!loan) return;
+
+            document.getElementById('returnLoanId').value = loan.loanId;
+            document.getElementById('returnInfoPeminjam').textContent = `${loan.nama} (${loan.nim} - ${loan.prodi})`;
+            document.getElementById('returnInfoAlat').textContent = `${loan.namaAlat} — Dipinjam: ${loan.jumlah} Unit`;
+            document.getElementById('returnCatatan').value = '';
+
+            const modal = document.getElementById('kembaliModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeKembaliModal() {
+            const modal = document.getElementById('kembaliModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function submitPengembalian(e) {
+            e.preventDefault();
+            const loanId = document.getElementById('returnLoanId').value;
+            const kondisiKembali = document.querySelector('input[name="kondisiKembali"]:checked').value;
+            const catatan = document.getElementById('returnCatatan').value.trim();
+
+            const loan = riwayatPeminjaman.find(l => l.loanId === loanId);
+            if (!loan || loan.status === 'Sudah Kembali') return;
+
+            // Update status peminjaman
+            loan.status = 'Sudah Kembali';
+            loan.waktuKembali = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            loan.kondisiSaatKembali = kondisiKembali;
+            loan.catatanPetugas = catatan;
+
+            // Kembalikan stok ke inventaris & update kondisi alat jika dilaporkan rusak
+            const alat = dataAlatLab.find(a => a.ID_Alat === loan.idAlat);
+            if (alat) {
+                alat.Stok_Tersedia = (parseInt(alat.Stok_Tersedia) || 0) + (parseInt(loan.jumlah) || 1);
+                if (kondisiKembali === 'Rusak') {
+                    alat.Kondisi = 'Rusak';
+                }
+            }
+
+            saveInventoryToStorage();
+            saveLoansToStorage();
+            closeKembaliModal();
+            filterData();
+            renderRiwayat();
+            renderPetugasPinjaman();
+            renderPetugasInventaris();
+            showToast(`Alat ${loan.namaAlat} telah ditandai kembali (${kondisiKembali})!`);
+        }
+
+        function batalkanPengembalian(loanId) {
+            const loan = riwayatPeminjaman.find(l => l.loanId === loanId);
+            if (!loan || loan.status !== 'Sudah Kembali') return;
+
+            loan.status = 'Dipinjam';
+            const alat = dataAlatLab.find(a => a.ID_Alat === loan.idAlat);
+            if (alat && alat.Stok_Tersedia >= loan.jumlah) {
+                alat.Stok_Tersedia -= loan.jumlah;
+            }
+
+            saveInventoryToStorage();
+            saveLoansToStorage();
+            filterData();
+            renderRiwayat();
+            renderPetugasPinjaman();
+            renderPetugasInventaris();
+            showToast('Status dikembalikan menjadi Sedang Dipinjam');
+        }
+
+        // Render Tabel Kelola Inventaris (Tambah/Kurang Stok & Ubah Status Kondisi Baik/Rusak)
+        function renderPetugasInventaris() {
+            const tbody = document.getElementById('tabel-petugas-inventaris-body');
+            tbody.innerHTML = '';
+
+            dataAlatLab.forEach(alat => {
+                const stok = parseInt(alat.Stok_Tersedia) || 0;
+                const kondisi = alat.Kondisi || 'Baik';
+                const isRusak = kondisi === 'Rusak';
+                const imgUrl = getDriveDirectUrl(alat.Gambar_URL);
+
+                const row = `
+                    <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/40">
+                        <td class="py-3 px-4">
+                            <div class="flex items-center gap-3">
+                                <img src="${imgUrl}" alt="${alat.Nama_Alat}" class="w-10 h-10 rounded object-contain bg-white border p-1" onerror="this.src='https://placehold.co/100x100?text=Alat'">
+                                <div>
+                                    <span class="text-[11px] font-mono font-bold text-indigo-600 dark:text-indigo-400">${alat.ID_Alat}</span>
+                                    <p class="font-bold text-gray-800 dark:text-white text-sm">${alat.Nama_Alat}</p>
+                                    <p class="text-xs text-gray-400">${alat.Spesifikasi || '-'}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-3 px-4">
+                            <span class="px-2.5 py-1 text-xs font-medium rounded bg-gray-100 dark:bg-slate-700">${alat.Kategori}</span>
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            <div class="inline-flex items-center gap-2 bg-gray-100 dark:bg-slate-700 p-1 rounded-lg">
+                                <button onclick="ubahStokAlat('${alat.ID_Alat}', -1)" class="w-7 h-7 rounded bg-white dark:bg-slate-800 hover:bg-red-500 hover:text-white text-gray-700 dark:text-gray-200 font-bold shadow-xs transition-colors" title="Kurangi Stok">
+                                    <i class="fas fa-minus text-xs"></i>
+                                </button>
+                                <span class="w-10 text-center font-bold text-sm ${stok > 0 ? 'text-gray-800 dark:text-white' : 'text-red-500'}">${stok}</span>
+                                <button onclick="ubahStokAlat('${alat.ID_Alat}', 1)" class="w-7 h-7 rounded bg-white dark:bg-slate-800 hover:bg-emerald-500 hover:text-white text-gray-700 dark:text-gray-200 font-bold shadow-xs transition-colors" title="Tambah Stok">
+                                    <i class="fas fa-plus text-xs"></i>
+                                </button>
+                            </div>
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            <button onclick="toggleKondisiAlat('${alat.ID_Alat}')" 
+                                class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-xs ${isRusak ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-950/70 dark:text-red-300' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-950/70 dark:text-emerald-300'}"
+                                title="Klik untuk mengubah kondisi Baik / Rusak">
+                                <i class="fas ${isRusak ? 'fa-tools' : 'fa-check-circle'} mr-1"></i> ${kondisi}
+                            </button>
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            <button onclick="hapusAlat('${alat.ID_Alat}')" class="text-gray-400 hover:text-red-600 p-1.5 rounded-lg transition-colors" title="Hapus Alat">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        // Fungsi Tambah / Kurangi Stok Langsung
+        function ubahStokAlat(idAlat, delta) {
+            const alat = dataAlatLab.find(a => a.ID_Alat === idAlat);
+            if (!alat) return;
+
+            const currentStok = parseInt(alat.Stok_Tersedia) || 0;
+            const newStok = Math.max(0, currentStok + delta);
+            alat.Stok_Tersedia = newStok;
+
+            saveInventoryToStorage();
+            filterData();
+            renderPetugasInventaris();
+            showToast(`Stok ${alat.Nama_Alat} diperbarui menjadi ${newStok} unit`);
+        }
+
+        // Fungsi Ubah Kondisi Alat (Baik <-> Rusak)
+        function toggleKondisiAlat(idAlat) {
+            const alat = dataAlatLab.find(a => a.ID_Alat === idAlat);
+            if (!alat) return;
+
+            alat.Kondisi = (alat.Kondisi === 'Rusak') ? 'Baik' : 'Rusak';
+            saveInventoryToStorage();
+            filterData();
+            renderPetugasInventaris();
+            showToast(`Status kondisi ${alat.Nama_Alat} diubah menjadi: ${alat.Kondisi}`);
+        }
+
+        // Fungsi Tambah Alat Baru
+        function openTambahAlatModal() {
+            document.getElementById('formTambahAlat').reset();
+            const modal = document.getElementById('tambahAlatModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeTambahAlatModal() {
+            const modal = document.getElementById('tambahAlatModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function submitTambahAlat(e) {
+            e.preventDefault();
+            const idAlat = document.getElementById('newAlatId').value.trim().toUpperCase();
+            if (dataAlatLab.some(a => a.ID_Alat.toUpperCase() === idAlat)) {
+                showToast('Kode ID Alat sudah digunakan! Gunakan kode lain.');
+                return;
+            }
+
+            const newItem = {
+                ID_Alat: idAlat,
+                Nama_Alat: document.getElementById('newAlatNama').value.trim(),
+                Kategori: document.getElementById('newAlatKategori').value,
+                Stok_Tersedia: parseInt(document.getElementById('newAlatStok').value) || 0,
+                Kondisi: document.getElementById('newAlatKondisi').value,
+                Spesifikasi: document.getElementById('newAlatSpek').value.trim() || 'Perlengkapan Lab Fikomm',
+                Gambar_URL: document.getElementById('newAlatGambar').value.trim() || 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=500&q=80'
+            };
+
+            dataAlatLab.unshift(newItem);
+            saveInventoryToStorage();
+            closeTambahAlatModal();
+            filterData();
+            renderPetugasInventaris();
+            showToast(`Alat baru "${newItem.Nama_Alat}" berhasil ditambahkan!`);
+        }
+
+        // Fungsi Hapus Alat dari Inventaris
+        function hapusAlat(idAlat) {
+            const index = dataAlatLab.findIndex(a => a.ID_Alat === idAlat);
+            if (index === -1) return;
+            const nama = dataAlatLab[index].Nama_Alat;
+            dataAlatLab.splice(index, 1);
+
+            saveInventoryToStorage();
+            filterData();
+            renderPetugasInventaris();
+            showToast(`Alat "${nama}" telah dihapus dari inventaris`);
+        }
+
+        // =========================================================================
+        // 8. FILTER PENCARIAN, KATEGORI, DAN KONDISI
+        // =========================================================================
+        function filterData() {
+            const searchText = document.getElementById('searchInput').value.toLowerCase();
+            const categoryValue = document.getElementById('categoryFilter').value;
+            const conditionValue = document.getElementById('conditionFilter').value;
+
+            const filteredData = dataAlatLab.filter(alat => {
+                const matchSearch = 
+                    (alat.Nama_Alat && alat.Nama_Alat.toLowerCase().includes(searchText)) ||
+                    (alat.ID_Alat && alat.ID_Alat.toLowerCase().includes(searchText)) ||
+                    (alat.Spesifikasi && alat.Spesifikasi.toLowerCase().includes(searchText));
+                const matchCategory = categoryValue === 'Semua' || alat.Kategori === categoryValue;
+                const kondisiAlat = alat.Kondisi || 'Baik';
+                const matchCondition = conditionValue === 'Semua' || kondisiAlat === conditionValue;
+                return matchSearch && matchCategory && matchCondition;
+            });
+
+            renderKatalog(filteredData);
+            renderTabelInventaris(filteredData);
+        }
+
+        // =========================================================================
+        // 9. MODAL PEMINJAMAN MAHASISWA
+        // =========================================================================
+        function openPinjamModal(idAlat) {
+            const alat = dataAlatLab.find(a => a.ID_Alat === idAlat);
+            if (!alat) return;
+
+            if (alat.Kondisi === 'Rusak') {
+                showToast('Maaf, alat ini sedang dalam kondisi Rusak / Perbaikan.');
+                return;
+            }
+
+            document.getElementById('modalAlatId').value = alat.ID_Alat;
+            document.getElementById('modalAlatKode').textContent = `[ ${alat.ID_Alat} ] - ${alat.Kategori}`;
+            document.getElementById('modalAlatNama').textContent = alat.Nama_Alat;
+            document.getElementById('modalAlatStok').textContent = `Tersedia: ${alat.Stok_Tersedia} Unit (Kondisi: ${alat.Kondisi || 'Baik'})`;
+            document.getElementById('modalAlatImg').src = getDriveDirectUrl(alat.Gambar_URL);
+            document.getElementById('inputJumlah').max = alat.Stok_Tersedia;
+            document.getElementById('inputJumlah').value = 1;
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(today.getDate() + 1);
+            document.getElementById('inputTanggal').valueAsDate = today;
+            document.getElementById('inputTanggalKembali').valueAsDate = tomorrow;
+
+            const modal = document.getElementById('pinjamModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closePinjamModal() {
+            const modal = document.getElementById('pinjamModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.getElementById('formPeminjaman').reset();
+        }
+
+        function submitPeminjaman(e) {
+            e.preventDefault();
+            const idAlat = document.getElementById('modalAlatId').value;
+            const alat = dataAlatLab.find(a => a.ID_Alat === idAlat);
+            const jumlah = parseInt(document.getElementById('inputJumlah').value) || 1;
+
+            if (!alat || alat.Stok_Tersedia < jumlah) {
+                showToast('Stok unit tidak mencukupi!');
+                return;
+            }
+
+            alat.Stok_Tersedia -= jumlah;
+
+            const dataPinjam = {
+                loanId: 'LN-' + Date.now(),
+                waktu: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+                idAlat: idAlat,
+                namaAlat: alat.Nama_Alat,
+                nama: document.getElementById('inputNama').value.trim(),
+                nim: document.getElementById('inputNim').value.trim(),
+                wa: document.getElementById('inputWa').value.trim(),
+                prodi: document.getElementById('inputProdi').value,
+                jumlah: jumlah,
+                tanggalPinjam: document.getElementById('inputTanggal').value,
+                tanggalKembali: document.getElementById('inputTanggalKembali').value,
+                keperluan: document.getElementById('inputKeperluan').value.trim(),
+                status: 'Dipinjam',
+                waktuKembali: null,
+                kondisiSaatKembali: null,
+                catatanPetugas: ''
+            };
+
+            riwayatPeminjaman.unshift(dataPinjam);
+            saveAllState(true);
+
+            closePinjamModal();
+            filterData();
+            renderRiwayat();
+            renderPetugasPinjaman();
+            renderPetugasInventaris();
+            showToast(`Peminjaman ${dataPinjam.namaAlat} tercatat & tersinkron ke semua perangkat!`);
+        }
+
+        // =========================================================================
+        // 10. KONEKSI GOOGLE SHEETS API & RESET DATA
+        // =========================================================================
+        function openSpreadsheetModal() {
+            document.getElementById('inputApiUrl').value = spreadsheetApiUrl;
+            document.getElementById('appsScriptCodeArea').value = GOOGLE_APPS_SCRIPT_TEMPLATE;
+            const modal = document.getElementById('spreadsheetModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeSpreadsheetModal() {
+            const modal = document.getElementById('spreadsheetModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function copyAppsScriptCode() {
+            const codeArea = document.getElementById('appsScriptCodeArea');
+            codeArea.select();
+            document.execCommand('copy');
+            showToast('Kode Google Apps Script berhasil disalin! Tempelkan di Ekstensi > Apps Script.');
+        }
+
+        async function saveAndSyncSpreadsheet() {
+            const url = document.getElementById('inputApiUrl').value.trim();
+            spreadsheetApiUrl = url;
+            localStorage.setItem('fikomm_api_url', url);
+            if (!url) {
+                showToast('URL Web App dikosongkan. Menggunakan mode Cloud & Direct Sheet Read.');
+                return;
+            }
+            showToast('URL Apps Script disimpan! Menyinkronkan data...');
+            await pushToGoogleSheetsWebhook();
+            await fetchFromGoogleSheets(url);
+        }
+
+        async function fetchFromGoogleSheets(url) {
+            try {
+                document.getElementById('syncStatusText').textContent = 'Menyinkronkan Google Sheets...';
+                const response = await fetch(url);
+                const json = await response.json();
+                
+                // Mendukung format array langsung maupun objek { inventory, loans }
+                if (Array.isArray(json) && json.length > 0) {
+                    dataAlatLab = json.map(item => ({
+                        ...item,
+                        Kondisi: item.Kondisi || 'Baik'
+                    }));
+                } else if (json && Array.isArray(json.inventory)) {
+                    if (json.inventory.length > 0) {
+                        dataAlatLab = json.inventory.map(item => ({
+                            ...item,
+                            Kondisi: item.Kondisi || 'Baik'
+                        }));
+                    }
+                    if (Array.isArray(json.loans) && json.loans.length > 0) {
+                        riwayatPeminjaman = json.loans;
+                    }
+                }
+
+                saveAllState(false);
+                filterData();
+                renderRiwayat();
+                renderPetugasPinjaman();
+                renderPetugasInventaris();
+                document.getElementById('syncStatusText').textContent = `Terhubung 2 Arah ke Google Sheet (${dataAlatLab.length} Alat)`;
+                showToast('Berhasil menyinkronkan data dari Google Sheets!');
+            } catch (err) {
+                console.warn('Gagal mengambil dari API, menggunakan data Cloud/Lokal:', err);
+                document.getElementById('syncStatusText').textContent = 'Cloud Multi-Device Aktif';
+            }
+        }
+
+        function openResetConfirmModal() {
+            closeSpreadsheetModal();
+            const modal = document.getElementById('resetConfirmModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeResetConfirmModal() {
+            const modal = document.getElementById('resetConfirmModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function confirmResetDefaultData() {
+            localStorage.removeItem('fikomm_inventory_v2');
+            localStorage.removeItem('fikomm_loans_v2');
+            dataAlatLab = JSON.parse(JSON.stringify(defaultDataAlat));
+            riwayatPeminjaman = [];
+            saveInventoryToStorage();
+            saveLoansToStorage();
+            filterData();
+            renderRiwayat();
+            renderPetugasPinjaman();
+            renderPetugasInventaris();
+            closeResetConfirmModal();
+            showToast('Seluruh data berhasil di-reset ke 23 alat default!');
+        }
+
+        function exportCSV() {
+            const headers = ['ID_Alat', 'Nama_Alat', 'Kategori', 'Stok_Tersedia', 'Kondisi', 'Spesifikasi', 'Gambar_URL'];
+            const rows = dataAlatLab.map(obj => headers.map(h => `"${(obj[h] ?? '').toString().replace(/"/g, '""')}"`).join(','));
+            const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows].join('\n');
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', 'inventaris_lab_fikomm.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast('File CSV berhasil diunduh untuk Google Sheets!');
+        }
+
+        // =========================================================================
+        // 11. NAVIGASI TAB & UTILITAS UI
+        // =========================================================================
+        function switchTab(tab) {
+            if (tab === 'petugas' && !isPetugasLoggedIn) {
+                handlePetugasAccess();
+                return;
+            }
+
+            const views = ['katalog', 'petugas', 'tabel', 'riwayat'];
+            views.forEach(v => {
+                document.getElementById(`view-${v}`).classList.add('hidden');
+                const navEl = document.getElementById(`nav-${v}`);
+                if (navEl) {
+                    navEl.className = 'flex items-center justify-between px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-slate-300 hover:text-blue-600 hover:bg-gray-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors';
+                }
+            });
+
+            document.getElementById(`view-${tab}`).classList.remove('hidden');
+            const activeNav = document.getElementById(`nav-${tab}`);
+            if (activeNav) {
+                activeNav.className = 'flex items-center justify-between px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg shadow-sm transition-all';
+            }
+
+            const titles = {
+                katalog: 'Pilihan Barang Peminjaman',
+                petugas: 'Dashboard Mode Petugas Laboratorium',
+                tabel: 'Tabel Master Inventaris Alat',
+                riwayat: 'Daftar Riwayat & Status Peminjaman'
+            };
+            document.getElementById('pageTitle').textContent = titles[tab] || 'Lab Fikomm';
+
+            if (tab === 'petugas') {
+                renderPetugasPinjaman();
+                renderPetugasInventaris();
+            }
+        }
+
+        function toggleMobileSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('sidebarBackdrop');
+            sidebar.classList.toggle('-translate-x-full');
+            backdrop.classList.toggle('hidden');
+        }
+
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            html.classList.toggle('dark');
+            localStorage.setItem('fikomm_theme', html.classList.contains('dark') ? 'dark' : 'light');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toastNotification');
+            document.getElementById('toastMessage').textContent = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3200);
+        }
+
+        // =========================================================================
+        // 12. INISIALISASI SAAT HALAMAN DIMUAT
+        // =========================================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            if (localStorage.getItem('fikomm_theme') === 'dark') {
+                document.documentElement.classList.add('dark');
+            }
+
+            document.getElementById('searchInput').addEventListener('input', filterData);
+            document.getElementById('categoryFilter').addEventListener('change', filterData);
+            document.getElementById('conditionFilter').addEventListener('change', filterData);
+
+            updatePetugasUIState();
+            updateSummaryStats();
+            filterData();
+            renderRiwayat();
+
+            // Tarik data terbaru dari Google Sheet User saat pertama kali dibuka
+            pullFromGoogleSheetDirect(false);
+        });
+    </script>
+
+    <!-- ===================================================================== -->
+    <!-- MODUL CLOUD REAL-TIME MULTI-DEVICE SYNC (FIREBASE FIRESTORE)          -->
+    <!-- Memastikan peminjaman & stok langsung sinkron antar HP/Laptop/PC Lab  -->
+    <!-- ===================================================================== -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        try {
+            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                const firebaseConfig = JSON.parse(__firebase_config);
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'lab-fikomm-default';
+                const app = initializeApp(firebaseConfig);
+                const auth = getAuth(app);
+                const db = getFirestore(app);
+
+                // Rule 3: Auth Before Queries
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                onAuthStateChanged(auth, (user) => {
+                    if (!user) return;
+
+                    // Rule 1: Strict Public Path untuk kolaborasi lintas perangkat
+                    const stateDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'fikomm_lab_state', 'master_store');
+
+                    // Fungsi untuk mengunggah perubahan dari perangkat ini ke Cloud
+                    window.syncStateToCloud = async (inventoryData, loansData) => {
+                        if (!auth.currentUser) return;
+                        try {
+                            await setDoc(stateDocRef, {
+                                inventoryJson: JSON.stringify(inventoryData),
+                                loansJson: JSON.stringify(loansData),
+                                updatedAt: Date.now(),
+                                updatedBy: auth.currentUser.uid
+                            }, { merge: true });
+                        } catch (e) {
+                            console.warn('Cloud sync write error:', e);
+                        }
+                    };
+
+                    // Listener Real-time: Setiap ada perangkat lain yang meminjam/mengembalikan, layar otomatis ter-update
+                    onSnapshot(stateDocRef, (snapshot) => {
+                        if (snapshot.exists()) {
+                            const cloudData = snapshot.data();
+                            let changed = false;
+
+                            if (cloudData.inventoryJson) {
+                                const parsedInv = JSON.parse(cloudData.inventoryJson);
+                                if (JSON.stringify(parsedInv) !== JSON.stringify(dataAlatLab)) {
+                                    dataAlatLab = parsedInv;
+                                    localStorage.setItem('fikomm_inventory_v2', cloudData.inventoryJson);
+                                    changed = true;
+                                }
+                            }
+
+                            if (cloudData.loansJson) {
+                                const parsedLoans = JSON.parse(cloudData.loansJson);
+                                if (JSON.stringify(parsedLoans) !== JSON.stringify(riwayatPeminjaman)) {
+                                    riwayatPeminjaman = parsedLoans;
+                                    localStorage.setItem('fikomm_loans_v2', cloudData.loansJson);
+                                    changed = true;
+                                }
+                            }
+
+                            if (changed) {
+                                updateSummaryStats();
+                                filterData();
+                                renderRiwayat();
+                                if (isPetugasLoggedIn) {
+                                    renderPetugasPinjaman();
+                                    renderPetugasInventaris();
+                                }
+                            }
+                            document.getElementById('syncStatusText').textContent = 'Live Multi-Device Sync & Google Sheet Aktif';
+                        } else {
+                            // Inisialisasi data pertama kali ke Cloud
+                            window.syncStateToCloud(dataAlatLab, riwayatPeminjaman);
+                        }
+                    }, (error) => {
+                        console.warn('Firestore snapshot error:', error);
+                    });
+                });
+            }
+        } catch (e) {
+            console.warn('Mode Cloud menggunakan fallback Local & Google Sheet:', e);
+        }
+    </script>
+</body>
+</html>
